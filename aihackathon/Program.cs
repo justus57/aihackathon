@@ -94,14 +94,14 @@ namespace CodeOptimizer
             // Use the utility method to find the correct project directory
             var projectDirectory = FindProjectDirectory();
             var sampleCodePath = Path.Combine(projectDirectory, "SampleCode", "InefficientCode.cs");
-            
+
             Console.WriteLine($"Looking for sample code at: {sampleCodePath}");
-            
+
             if (!File.Exists(sampleCodePath))
             {
                 Console.WriteLine($"Sample code file not found at: {sampleCodePath}");
                 Console.WriteLine("Please ensure the SampleCode folder exists in the project directory.");
-                
+
                 // Try to find any .cs files in SampleCode directory
                 var sampleCodeDir = Path.Combine(projectDirectory, "SampleCode");
                 if (Directory.Exists(sampleCodeDir))
@@ -114,7 +114,7 @@ namespace CodeOptimizer
                         {
                             Console.WriteLine($"  - {Path.GetFileName(file)}");
                         }
-                        
+
                         // Use the first file found
                         sampleCodePath = csFiles[0];
                         Console.WriteLine($"Using: {Path.GetFileName(sampleCodePath)}");
@@ -245,9 +245,9 @@ namespace CodeOptimizer
             Console.WriteLine("2. Overwrite original file");
             Console.WriteLine("3. Cancel");
             Console.Write("Enter your choice (1-3): ");
-            
+
             var choice = Console.ReadLine();
-            
+
             switch (choice)
             {
                 case "1":
@@ -289,7 +289,7 @@ namespace CodeOptimizer
         private static async Task OverwriteOriginalFile(CodeAnalysisResult result)
         {
             var originalPath = result.OriginalCode != null ? GetOriginalFilePath(result) : null;
-            
+
             if (string.IsNullOrEmpty(originalPath) || originalPath == "clipboard")
             {
                 Console.WriteLine("Cannot overwrite original file (clipboard input or unknown source).");
@@ -302,9 +302,9 @@ namespace CodeOptimizer
             Console.WriteLine($"   {originalPath}");
             Console.WriteLine("   Make sure you have a backup if needed.");
             Console.Write("Are you sure you want to overwrite? (y/n): ");
-            
+
             var confirm = Console.ReadLine();
-            
+
             if (confirm?.ToLower() == "y")
             {
                 try
@@ -313,7 +313,7 @@ namespace CodeOptimizer
                     var backupPath = originalPath + ".backup_" + DateTime.Now.ToString("yyyyMMdd_HHmmss");
                     File.Copy(originalPath, backupPath);
                     Console.WriteLine($"Backup created: {backupPath}");
-                    
+
                     // Overwrite with optimized code
                     await File.WriteAllTextAsync(originalPath, result.OptimizedCode);
                     Console.WriteLine($"✅ Original file overwritten with optimized code: {originalPath}");
@@ -403,9 +403,9 @@ namespace CodeOptimizer
                     Console.WriteLine("2. Overwrite original files (with backup)");
                     Console.WriteLine("3. Skip saving");
                     Console.Write("Enter your choice (1-3): ");
-                    
+
                     var saveChoice = Console.ReadLine();
-                    
+
                     switch (saveChoice)
                     {
                         case "1":
@@ -535,7 +535,7 @@ namespace CodeOptimizer
         private static string FindProjectDirectory()
         {
             var currentDirectory = Directory.GetCurrentDirectory();
-            
+
             // Check if we're in the bin directory (running from build output)
             if (currentDirectory.Contains("bin"))
             {
@@ -546,20 +546,20 @@ namespace CodeOptimizer
                     return projectDir;
                 }
             }
-            
+
             // Check if we're in the project directory already
             if (Directory.Exists(Path.Combine(currentDirectory, "SampleCode")))
             {
                 return currentDirectory;
             }
-            
+
             // Check parent directory
             var parentDir = Directory.GetParent(currentDirectory)?.FullName;
             if (parentDir != null && Directory.Exists(Path.Combine(parentDir, "SampleCode")))
             {
                 return parentDir;
             }
-            
+
             // Fallback to current directory
             return currentDirectory;
         }
