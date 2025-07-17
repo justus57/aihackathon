@@ -7,84 +7,86 @@ namespace CodeOptimizer
     class Program
     {
         static async Task Main(string[] args)
-        {
-            Console.WriteLine("=== AI-Powered Code Memory Optimizer ===");
-            Console.WriteLine("This tool analyzes C# code and provides memory optimization suggestions using OpenAI.\n");
+        {      
+               Console.WriteLine("=== AI-Powered Code Memory Optimizer ===");
+               Console.WriteLine("This tool analyzes C# code and provides memory optimization suggestions using OpenAI.\n");
 
-            // Load configuration
-            var configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                .AddEnvironmentVariables()
-                .Build();
+               // Load configuration
+               var configuration = new ConfigurationBuilder()
+                   .SetBasePath(Directory.GetCurrentDirectory())
+                   .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                   .AddEnvironmentVariables()
+                   .Build();
 
-            // Get OpenAI API key
-            var openAiApiKey = configuration["OpenAI:ApiKey"];
-            if (string.IsNullOrEmpty(openAiApiKey))
-            {
-                // Try to get from environment variable
-                openAiApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
-            }
+               // Get OpenAI API key
+               var openAiApiKey = configuration["OpenAI:ApiKey"];
+               // Remove hardcoded API key for security
 
-            if (string.IsNullOrEmpty(openAiApiKey) || openAiApiKey == "YOUR_OPENAI_API_KEY_HERE")
-            {
-                Console.WriteLine("Please set your OpenAI API key in one of the following ways:");
-                Console.WriteLine("1. In appsettings.json under 'OpenAI:ApiKey'");
-                Console.WriteLine("2. As an environment variable 'OPENAI_API_KEY'");
-                Console.WriteLine("3. You can get an API key from: https://platform.openai.com/api-keys");
-                Console.WriteLine("\nPress any key to exit...");
-                Console.ReadKey();
-                return;
-            }
+               if (string.IsNullOrEmpty(openAiApiKey))
+               {
+                   // Try to get from environment variable
+                   openAiApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+               }
 
-            try
-            {
-                // Initialize the optimizer service
-                var optimizer = new CodeOptimizerService(openAiApiKey);
-                var solutionOptimizer = new SolutionOptimizerService(openAiApiKey);
+               if (string.IsNullOrEmpty(openAiApiKey) || openAiApiKey == "YOUR_OPENAI_API_KEY_HERE")
+               {
+                   Console.WriteLine("Please set your OpenAI API key in one of the following ways:");
+                   Console.WriteLine("1. In appsettings.json under 'OpenAI:ApiKey'");
+                   Console.WriteLine("2. As an environment variable 'OPENAI_API_KEY'");
+                   Console.WriteLine("3. You can get an API key from: https://platform.openai.com/api-keys");
+                   Console.WriteLine("\nPress any key to exit...");
+                   Console.ReadKey();
+                   return;
+               }
 
-                // Show menu
-                while (true)
-                {
-                    Console.WriteLine("\nChoose an option:");
-                    Console.WriteLine("1. Analyze sample inefficient code");
-                    Console.WriteLine("2. Analyze custom code file");
-                    Console.WriteLine("3. Analyze code from clipboard");
-                    Console.WriteLine("4. Scan and optimize entire solution");
-                    Console.WriteLine("5. Exit");
-                    Console.Write("\nEnter your choice (1-5): ");
+               try
+               {
+                   // Initialize the optimizer service
+                   var optimizer = new CodeOptimizerService(openAiApiKey);
+                   var solutionOptimizer = new SolutionOptimizerService(openAiApiKey);
 
-                    var choice = Console.ReadLine();
+                   // Show menu
+                   while (true)
+                   {
+                       Console.WriteLine("\nChoose an option:");
+                       Console.WriteLine("1. Analyze sample inefficient code");
+                       Console.WriteLine("2. Analyze custom code file");
+                       Console.WriteLine("3. Analyze code from clipboard");
+                       Console.WriteLine("4. Scan and optimize entire solution");
+                       Console.WriteLine("5. Exit");
+                       Console.Write("\nEnter your choice (1-5): ");
 
-                    switch (choice)
-                    {
-                        case "1":
-                            await AnalyzeSampleCode(optimizer);
-                            break;
-                        case "2":
-                            await AnalyzeFileCode(optimizer);
-                            break;
-                        case "3":
-                            await AnalyzeClipboardCode(optimizer);
-                            break;
-                        case "4":
-                            await AnalyzeSolutionCode(solutionOptimizer);
-                            break;
-                        case "5":
-                            Console.WriteLine("Thank you for using the Code Memory Optimizer!");
-                            return;
-                        default:
-                            Console.WriteLine("Invalid choice. Please try again.");
-                            break;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error: {ex.Message}");
-                Console.WriteLine("\nPress any key to exit...");
-                Console.ReadKey();
-            }
+                       var choice = Console.ReadLine();
+
+                       switch (choice)
+                       {
+                           case "1":
+                               await AnalyzeSampleCode(optimizer);
+                               break;
+                           case "2":
+                               await AnalyzeFileCode(optimizer);
+                               break;
+                           case "3":
+                               await AnalyzeClipboardCode(optimizer);
+                               break;
+                           case "4":
+                               await AnalyzeSolutionCode(solutionOptimizer);
+                               break;
+                           case "5":
+                               Console.WriteLine("Thank you for using the Code Memory Optimizer!");
+                               return;
+                           default:
+                               Console.WriteLine("Invalid choice. Please try again.");
+                               break;
+                       }
+                   }
+               }
+               catch (Exception ex)
+               {
+                   Console.WriteLine($"Error: {ex.Message}");
+                   Console.WriteLine("\nPress any key to exit...");
+                   Console.ReadKey();
+               }
         }
 
         private static async Task AnalyzeSampleCode(CodeOptimizerService optimizer)
@@ -222,14 +224,8 @@ namespace CodeOptimizer
 
                 optimizer.DisplayResults(result);
 
-                // Ask if user wants to save the optimized code
-                Console.WriteLine("\nWould you like to save the optimized code to a file? (y/n): ");
-                var save = Console.ReadLine();
-
-                if (save?.ToLower() == "y")
-                {
-                    await SaveOptimizedCode(result);
-                }
+                // Automatically save optimized code back to original file
+                await AutoSaveOptimizedCode(result);
             }
             catch (Exception ex)
             {
@@ -238,7 +234,111 @@ namespace CodeOptimizer
             }
         }
 
-        private static async Task SaveOptimizedCode(CodeAnalysisResult result)
+        private static async Task AutoSaveOptimizedCode(CodeAnalysisResult result)
+        {
+            var originalPath = result.OriginalFilePath;
+
+            // Only auto-save if it's a real file (not clipboard input)
+            if (string.IsNullOrEmpty(originalPath) || originalPath == "clipboard")
+            {
+                Console.WriteLine("\n⚠️  Cannot auto-save clipboard input. Skipping automatic save.");
+                return;
+            }
+
+            try
+            {
+                // Create backup first
+                var backupPath = originalPath + ".backup_" + DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                File.Copy(originalPath, backupPath);
+                
+                // Overwrite with optimized code
+                await File.WriteAllTextAsync(originalPath, result.OptimizedCode);
+                
+                Console.WriteLine($"\n✅ Original file automatically updated with optimized code!");
+                Console.WriteLine($"📁 File: {originalPath}");
+                Console.WriteLine($"💾 Backup saved at: {backupPath}");
+
+                // Ask if user wants to create a Git branch and PR
+                Console.WriteLine("\n🔄 Would you like to create a Git branch and pull request for these changes? (y/n): ");
+                var createPr = Console.ReadLine();
+
+                if (createPr?.ToLower() == "y")
+                {
+                    await CreateGitBranchAndPR(originalPath, result);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"\n❌ Error auto-saving optimized code: {ex.Message}");
+            }
+        }
+
+        private static async Task CreateGitBranchAndPR(string filePath, CodeAnalysisResult result)
+        {
+            try
+            {
+                // Get the repository root directory
+                var repoPath = FindGitRepository(filePath);
+                if (string.IsNullOrEmpty(repoPath))
+                {
+                    Console.WriteLine("⚠️  No Git repository found. Skipping branch creation.");
+                    return;
+                }
+
+                // Generate branch name based on file and timestamp
+                var fileName = Path.GetFileNameWithoutExtension(filePath);
+                var branchName = $"optimize-{fileName}-{DateTime.Now:yyyyMMdd-HHmmss}";
+                
+                // Create commit message
+                var commitMessage = $"Optimize {fileName} with AI suggestions\n\n" +
+                    $"Applied {result.Suggestions.Count} optimizations:\n" +
+                    string.Join("\n", result.Suggestions.Take(3).Select(s => $"- {s.Type}: {s.Description}")) +
+                    (result.Suggestions.Count > 3 ? $"\n- And {result.Suggestions.Count - 3} more optimizations..." : "");
+
+                Console.WriteLine($"🔄 Creating branch: {branchName}");
+                
+                // Use the GitRepoManager class to manage Git operations
+                var repo = new GitRepoManager(
+                    repourl: "https://github.com/justus57/aihackathon.git", // Update with your repo URL
+                    localPath: repoPath,
+                    newBranchName: branchName,
+                    commitMessage: commitMessage
+                );
+
+                // Create branch, commit, and push
+                await repo.CreateBranch();
+
+                // Create pull request
+                Console.WriteLine("🔄 Creating pull request...");
+                var prUrl = await repo.CreatePr();
+                
+                if (!string.IsNullOrEmpty(prUrl))
+                {
+                    Console.WriteLine($"🎉 Pull request created successfully!");
+                    Console.WriteLine($"🔗 PR URL: {prUrl}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error creating Git branch and PR: {ex.Message}");
+            }
+        }
+
+        private static string? FindGitRepository(string filePath)
+        {
+            var directory = Path.GetDirectoryName(filePath);
+            
+            while (!string.IsNullOrEmpty(directory))
+            {
+                if (Directory.Exists(Path.Combine(directory, ".git")))
+                {
+                    return directory;
+                }
+                directory = Directory.GetParent(directory)?.FullName;
+            }
+            
+            return null;
+        }        private static async Task SaveOptimizedCode(CodeAnalysisResult result)
         {
             Console.WriteLine("\nSave options:");
             Console.WriteLine("1. Save to new file");

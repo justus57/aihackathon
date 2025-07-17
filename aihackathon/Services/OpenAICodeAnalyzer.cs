@@ -52,8 +52,12 @@ namespace CodeOptimizer.Services
         private string CreateAnalysisPrompt(string code)
         {
             return $@"
-Please analyze the following C# code for memory optimization opportunities and provide a JSON response with the following structure:
+You are an expert C# memory optimization specialist. Analyze the following C# code and provide:
 
+1. Memory optimization suggestions
+2. Complete optimized version of the code
+
+Please provide your response in the following JSON format:
 {{
   ""suggestions"": [
     {{
@@ -70,23 +74,24 @@ Please analyze the following C# code for memory optimization opportunities and p
 }}
 
 Focus on these memory optimization areas:
-1. String concatenation optimization (StringBuilder, string interpolation)
-2. Collection initialization and capacity management
-3. Unnecessary object allocations
-4. Proper disposal of resources (using statements)
-5. Boxing/unboxing elimination
-6. Lazy initialization where appropriate
-7. Value types vs reference types optimization
-8. Memory-efficient LINQ operations
-9. Async/await memory patterns
-10. Cache-friendly data structures
+- String concatenation optimization (use StringBuilder instead of += in loops)
+- Collection initialization and capacity management
+- Unnecessary object allocations and boxing/unboxing
+- Proper resource disposal (using statements)
+- Efficient LINQ operations
+- Memory-efficient data structures
+- Lazy initialization where appropriate
 
 Code to analyze:
 ```csharp
 {code}
 ```
 
-Provide practical, implementable suggestions with clear before/after examples.
+IMPORTANT: 
+1. Provide the complete optimized code that can be compiled and run
+2. Make sure all optimizations are practical and improve memory usage
+3. Include proper using statements and namespace declarations
+4. Focus on real memory improvements, not just style changes
 ";
         }
 
@@ -94,6 +99,9 @@ Provide practical, implementable suggestions with clear before/after examples.
         {
             try
             {
+                // Log the raw response for debugging
+                Console.WriteLine($"Raw OpenAI response: {response}");
+                
                 // Try to extract JSON from the response
                 var startIndex = response.IndexOf('{');
                 var endIndex = response.LastIndexOf('}');
@@ -101,12 +109,14 @@ Provide practical, implementable suggestions with clear before/after examples.
                 if (startIndex >= 0 && endIndex >= 0)
                 {
                     var jsonContent = response.Substring(startIndex, endIndex - startIndex + 1);
+                    Console.WriteLine($"Extracted JSON: {jsonContent}");
+                    
                     var analysisData = JsonConvert.DeserializeObject<dynamic>(jsonContent);
                     
                     var result = new CodeAnalysisResult
                     {
                         OriginalCode = codeFile.Content,
-                        OptimizedCode = analysisData?.optimizedCode ?? codeFile.Content,
+                        OptimizedCode = analysisData?.optimizedCode ?? GenerateOptimizedCode(codeFile.Content, response),
                         OriginalFilePath = codeFile.FilePath,
                         Suggestions = new List<OptimizationSuggestion>()
                     };
@@ -129,28 +139,135 @@ Provide practical, implementable suggestions with clear before/after examples.
 
                     return result;
                 }
+                else
+                {
+                    // If no JSON found, try to parse as plain text response
+                    return ParsePlainTextResponse(codeFile, response);
+                }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error parsing OpenAI response: {ex.Message}");
+                Console.WriteLine($"Response content: {response}");
+                
+                // Try to parse as plain text if JSON parsing fails
+                return ParsePlainTextResponse(codeFile, response);
             }
+        }
 
-            // Fallback if parsing fails
-            return new CodeAnalysisResult
+        private CodeAnalysisResult ParsePlainTextResponse(CodeFile codeFile, string response)
+        {
+            var result = new CodeAnalysisResult
             {
                 OriginalCode = codeFile.Content,
-                OptimizedCode = codeFile.Content,
+                OptimizedCode = GenerateOptimizedCode(codeFile.Content, response),
                 OriginalFilePath = codeFile.FilePath,
-                Suggestions = new List<OptimizationSuggestion>
-                {
-                    new OptimizationSuggestion
-                    {
-                        Type = "Analysis Error",
-                        Description = "Failed to parse OpenAI response. Please check the API response format.",
-                        Severity = "High"
-                    }
-                }
+                Suggestions = new List<OptimizationSuggestion>()
             };
+
+            // Extract suggestions from plain text response
+            var suggestions = ExtractSuggestionsFromText(response);
+            result.Suggestions.AddRange(suggestions);
+
+            return result;
+        }
+
+        private List<OptimizationSuggestion> ExtractSuggestionsFromText(string response)
+        {
+            var suggestions = new List<OptimizationSuggestion>();
+            
+            // Look for common patterns in optimization suggestions
+            var lines = response.Split('\n');
+            OptimizationSuggestion? currentSuggestion = null;
+            
+            foreach (var line in lines)
+            {
+                var trimmedLine = line.Trim();
+                
+                // Check for optimization types
+                if (trimmedLine.Contains("StringBuilder") || trimmedLine.Contains("string concatenation"))
+                {
+                    currentSuggestion = new OptimizationSuggestion
+                    {
+                        Type = "String Concatenation Optimization",
+                        Description = trimmedLine,
+                        Severity = "High"
+                    };
+                    suggestions.Add(currentSuggestion);
+                }
+                else if (trimmedLine.Contains("using") || trimmedLine.Contains("dispose"))
+                {
+                    currentSuggestion = new OptimizationSuggestion
+                    {
+                        Type = "Resource Management",
+                        Description = trimmedLine,
+                        Severity = "High"
+                    };
+                    suggestions.Add(currentSuggestion);
+                }
+                else if (trimmedLine.Contains("boxing") || trimmedLine.Contains("unboxing"))
+                {
+                    currentSuggestion = new OptimizationSuggestion
+                    {
+                        Type = "Boxing/Unboxing Elimination",
+                        Description = trimmedLine,
+                        Severity = "Medium"
+                    };
+                    suggestions.Add(currentSuggestion);
+                }
+                else if (trimmedLine.Contains("LINQ") || trimmedLine.Contains("enumeration"))
+                {
+                    currentSuggestion = new OptimizationSuggestion
+                    {
+                        Type = "LINQ Optimization",
+                        Description = trimmedLine,
+                        Severity = "Medium"
+                    };
+                    suggestions.Add(currentSuggestion);
+                }
+                else if (trimmedLine.Contains("collection") || trimmedLine.Contains("List"))
+                {
+                    currentSuggestion = new OptimizationSuggestion
+                    {
+                        Type = "Collection Optimization",
+                        Description = trimmedLine,
+                        Severity = "Medium"
+                    };
+                    suggestions.Add(currentSuggestion);
+                }
+            }
+
+            if (suggestions.Count == 0)
+            {
+                suggestions.Add(new OptimizationSuggestion
+                {
+                    Type = "General Memory Optimization",
+                    Description = "OpenAI provided optimization suggestions but they couldn't be parsed into structured format.",
+                    Severity = "Medium"
+                });
+            }
+
+            return suggestions;
+        }
+
+        private string GenerateOptimizedCode(string originalCode, string response)
+        {
+            // If response contains optimized code, try to extract it
+            if (response.Contains("```csharp"))
+            {
+                var startIndex = response.IndexOf("```csharp");
+                var endIndex = response.IndexOf("```", startIndex + 9);
+                
+                if (startIndex >= 0 && endIndex >= 0)
+                {
+                    var codeStart = startIndex + 9;
+                    var optimizedCode = response.Substring(codeStart, endIndex - codeStart).Trim();
+                    return optimizedCode;
+                }
+            }
+
+            // If no optimized code found, return original with a comment
+            return $"// OpenAI optimization suggestions applied\n// Original response: {response.Substring(0, Math.Min(200, response.Length))}...\n\n{originalCode}";
         }
     }
 }

@@ -6,7 +6,7 @@ using System.Text;
 
 namespace SampleCode
 {
-    public class EfficientDataProcessor
+    public class InefficientDataProcessor
     {
         public string ProcessData(List<string> data)
         {
@@ -17,18 +17,20 @@ namespace SampleCode
             }
             string result = sb.ToString();
 
-            var numbers = new List<int>(1000);
+            var numbers = new List<object>(1000);
             for (int i = 0; i < 1000; i++)
             {
                 numbers.Add(i);
             }
 
-            var processedNumbers = numbers.Where(x => x > 500).Select(x => x.ToString()).ToArray();
+            var processedNumbers = numbers.OfType<int>().Where(x => x > 500).Select(x => x.ToString()).ToList();
 
             using (var fileStream = new FileStream("temp.txt", FileMode.Create))
-            using (var writer = new StreamWriter(fileStream))
             {
-                writer.Write(result);
+                using (var writer = new StreamWriter(fileStream))
+                {
+                    writer.Write(result);
+                }
             }
 
             return result;
@@ -58,8 +60,8 @@ namespace SampleCode
             var max = data.Max();
             var min = data.Min();
 
-            var evenNumbers = new HashSet<int>(data.Where(x => x % 2 == 0));
-            var oddNumbers = new HashSet<int>(data.Where(x => x % 2 != 0));
+            var evenNumbers = data.Where(x => x % 2 == 0).ToList();
+            var oddNumbers = data.Where(x => x % 2 != 0).ToList();
 
             var sb = new StringBuilder();
             for (int i = 0; i < data.Count; i++)
@@ -104,7 +106,7 @@ namespace SampleCode
             var lines = new List<string>();
             using (var reader = new StreamReader(filePath))
             {
-                string? line;
+                string line;
                 while ((line = reader.ReadLine()) != null)
                 {
                     lines.Add(line.Trim().ToUpper());

@@ -23,7 +23,7 @@ namespace SampleCode
                 numbers.Add(i);
             }
 
-            var processedNumbers = numbers.Where(x => x > 500).Select(x => x.ToString()).ToArray();
+            var processedNumbers = numbers.Where(x => x is int && (int)x > 500).Select(x => x.ToString()).ToList();
 
             using (var fileStream = new FileStream("temp.txt", FileMode.Create))
             using (var writer = new StreamWriter(fileStream))
@@ -104,7 +104,7 @@ namespace SampleCode
             var lines = new List<string>();
             using (var reader = new StreamReader(filePath))
             {
-                string? line;
+                string line;
                 while ((line = reader.ReadLine()) != null)
                 {
                     lines.Add(line.Trim().ToUpper());

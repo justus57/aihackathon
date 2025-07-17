@@ -2,6 +2,37 @@
 
 This project uses OpenAI's GPT-4 to analyze C# code and provide memory optimization suggestions. It identifies common memory inefficiencies and rewrites code to be more memory-efficient.
 
+## Quick Start
+
+1. **Set up your OpenAI API Key** (choose one method):
+   
+   **Method 1: Environment Variable (Recommended)**
+   ```bash
+   # Windows (PowerShell)
+   $env:OPENAI_API_KEY="your_api_key_here"
+   
+   # Windows (Command Prompt)
+   set OPENAI_API_KEY=your_api_key_here
+   
+   # Linux/Mac
+   export OPENAI_API_KEY="your_api_key_here"
+   ```
+   
+   **Method 2: Configuration File**
+   - Copy `appsettings.example.json` to `appsettings.json`
+   - Replace `YOUR_OPENAI_API_KEY_HERE` with your actual API key
+   
+2. **Run the application**:
+   ```bash
+   cd aihackathon
+   dotnet run
+   ```
+
+3. **Get your OpenAI API Key**:
+   - Visit https://platform.openai.com/api-keys
+   - Create a new API key
+   - Copy the key and use it in step 1
+
 ## Features
 
 - **AI-Powered Analysis**: Uses OpenAI GPT-4 to analyze code for memory optimization opportunities
